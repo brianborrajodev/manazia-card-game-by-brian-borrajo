@@ -1,0 +1,154 @@
+// ==========================================
+// ENUMS (Tipos enumerados)
+// ==========================================
+
+Enum user_type {
+  guest   // Invitado: puede jugar modos offline/locales, NO online
+  account // Jugador con cuenta: acceso completo, incluido online
+}
+
+Enum game_mode_type {
+  offline // Campaña, entrenamiento, local, etc.
+  online  // Multijugador (restringido a user_type = 'account')
+}
+
+Enum queue_status {
+  waiting   // Esperando rival en cola
+  matched   // Emparejado y asignado a una partida
+  cancelled // Canceló la búsqueda o expiró
+}
+
+Enum match_status {
+  pending     // Creada, esperando conexión de ambos jugadores
+  in_progress // Partida activa
+  finished    // Finalizada con resultado
+  aborted     // Cancelada o desconexión antes de completar
+}
+
+Enum match_outcome {
+  win
+  loss
+  draw
+}
+
+// ==========================================
+// TABLAS PRINCIPALES
+// ==========================================
+
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_type user_type [not null]
+  display_name varchar(50) [not null]
+  created_at timestamp [not null, default: `now()`]
+  last_active_at timestamp
+
+  // Identificador de sesión/dispositivo para invitados
+  guest_token varchar(128) [unique]
+
+  // Datos exclusivos de cuentas registradas (obligatorios si user_type = 'account')
+  email varchar(255) [unique]
+  password_hash varchar(255)
+  is_verified boolean [not null, default: false]
+
+  indexes {
+    user_type
+    created_at
+  }
+
+  Note: '''
+    Representa tanto a invitados como a usuarios con cuenta.
+    Reglas de integridad recomendadas a nivel de aplicación / CHECK en BD:
+    - Si user_type = 'guest': guest_token NOT NULL, email IS NULL, password_hash IS NULL.
+    - Si user_type = 'account': email NOT NULL, password_hash NOT NULL, guest_token IS NULL.
+  '''
+}
+
+Table player_profiles {
+  user_id uuid [pk, ref: > users.id]
+  rating int [not null, default: 1000] // MMR / ELO para emparejamiento online
+  wins int [not null, default: 0]
+  losses int [not null, default: 0]
+  draws int [not null, default: 0]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'Estadísticas y MMR. Solo aplicable a usuarios con cuenta (user_type = account) para online.'
+}
+
+Table game_modes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar(50) [unique, not null] // Ej: 'story', 'practice', 'ranked_1v1'
+  name varchar(100) [not null]
+  mode_type game_mode_type [not null]
+  requires_account boolean [not null] // true para modos online, false para los demás
+  is_active boolean [not null, default: true]
+
+  Note: 'Catálogo de modos de juego. Para modos online, requires_account debe ser true.'
+}
+
+// ==========================================
+// COLA DE EMPAREJAMIENTO (1v1 ONLINE)
+// ==========================================
+
+Table matchmaking_queue {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  game_mode_id uuid [not null, ref: > game_modes.id]
+  status queue_status [not null, default: 'waiting']
+  mmr_snapshot int [not null] // MMR al entrar en cola para buscar rival cercano
+  queued_at timestamp [not null, default: `now()`]
+  matched_at timestamp
+  match_id uuid [ref: > matches.id] // Se rellena cuando se forma la partida
+
+  indexes {
+    (game_mode_id, status, queued_at)
+    user_id
+  }
+
+  Note: '''
+    Cola para modos online de 2 jugadores.
+    Reglas de negocio:
+    - Solo usuarios con user_type = 'account' y game_mode.requires_account = true.
+    - Un jugador no debería tener más de una entrada 'waiting' activa a la vez.
+  '''
+}
+
+// ==========================================
+// PARTIDAS (ONLINE Y NO ONLINE)
+// ==========================================
+
+Table matches {
+  id uuid [pk, default: `gen_random_uuid()`]
+  game_mode_id uuid [not null, ref: > game_modes.id]
+  status match_status [not null, default: 'pending']
+  max_players int [not null, default: 2] // 2 para el modo online 1v1, 1 para modos offline
+  created_at timestamp [not null, default: `now()`]
+  started_at timestamp
+  ended_at timestamp
+
+  indexes {
+    (game_mode_id, status)
+    created_at
+  }
+}
+
+Table match_participants {
+  id uuid [pk, default: `gen_random_uuid()`]
+  match_id uuid [not null, ref: > matches.id]
+  user_id uuid [not null, ref: > users.id]
+  slot_number int [not null] // 1 o 2 en partidas online 1v1
+  outcome match_outcome
+  rating_delta int // Cambio de MMR tras la partida (solo en online)
+  joined_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (match_id, user_id) [unique]
+    (match_id, slot_number) [unique]
+    user_id
+  }
+
+  Note: '''
+    Participantes de cada partida.
+    En partidas online: exactamente 2 filas con user.user_type = 'account'.
+    En partidas no online: puede participar user_type = 'guest' o 'account'.
+  '''
+}
