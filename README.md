@@ -1,75 +1,40 @@
-# React + TypeScript + Vite
+# Manazia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Manazia es un juego de cartas **1 contra 1** inspirado en los juegos de cartas digitales como *Hearthstone*. Cada jugador construye su estrategia con un mazo y trata de reducir a cero la vida del personaje central de su oponente.
 
-Currently, two official plugins are available:
+## Reglas de la partida
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Preparación
 
-## React Compiler
+- Cada jugador comienza con un mazo de **40 cartas**.
+- Al inicio, cada jugador recibe **3 cartas aleatorias**.
+- Cada jugador dispone de **30 segundos** para revisar su mano inicial y decidir si descarta una carta. Si descarta una, recibe una carta nueva; al terminar, las **3 cartas que conserva** forman su mano inicial.
+- Cada personaje central comienza con **30 puntos de vida**.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Turnos
 
-## Expanding the ESLint configuration
+- El primer jugador se elige **aleatoriamente**.
+- Durante toda la partida, cada jugador tiene **1 minuto por turno** para realizar sus jugadas.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Mazo agotado
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Cuando un jugador se queda sin cartas en su mazo, empieza a perder **1 punto de vida** cada vez que le corresponda robar y no pueda hacerlo. Esta pérdida de vida se acumula de uno en uno.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Objetivo
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Gana quien reduzca a **0 los puntos de vida** del personaje central del oponente.
 
+## Desarrollo
+
+La aplicación está construida con React, TypeScript y Vite. Para instalar las dependencias y ejecutar el entorno de desarrollo:
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Para generar una compilación de producción:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run build
 ```
