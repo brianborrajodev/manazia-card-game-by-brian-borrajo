@@ -1,0 +1,26 @@
+services:
+  manazia:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    environment:
+      DOCKER_WATCH: "true"
+    init: true
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .git/
+            - .env
+            - node_modules/
+            - dist/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: package-lock.json

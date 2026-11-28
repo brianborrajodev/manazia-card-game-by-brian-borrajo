@@ -38,3 +38,15 @@ Para generar una compilación de producción:
 ```bash
 npm run build
 ```
+
+## Entorno de desarrollo con Docker
+
+Requiere Docker y una versión reciente de Docker Compose con soporte para Watch. El contenedor publica Vite en el puerto `5173`; Compose sincroniza los cambios del proyecto y Vite los recarga automáticamente (HMR). Los cambios en `package.json` o `package-lock.json` reconstruyen la imagen.
+
+```bash
+docker compose up --watch --build
+```
+
+Abre [http://localhost:5173](http://localhost:5173). Para detener el entorno, pulsa `Ctrl+C` y ejecuta `docker compose down`.
+
+Las variables locales se configuran en `.env`; usa `.env.example` como referencia. `.env` está excluido de Git. El `APP_SECRET` de ejemplo es solo un marcador: no hay actualmente un backend que lo consuma y los secretos nunca deben exponerse mediante variables `VITE_*` ni incluirse en el código del navegador.
